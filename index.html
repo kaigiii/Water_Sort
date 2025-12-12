@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>液體排序拼圖 (Water Sort Puzzle)</title>
+    <title>液體排序拼圖 (簡易版)</title>
     <style>
         :root {
             --bg-color: #1a1a1a;
             --tube-border: #dcdcdc;
             --tube-width: 60px;
-            --tube-height: 200px; /* 稍微調矮一點以適應畫面 */
+            --tube-height: 200px;
         }
 
         body {
@@ -25,7 +25,7 @@
             margin: 0;
             padding: 10px;
             user-select: none;
-            overflow-x: hidden; /* 防止手機左右滑動 */
+            overflow-x: hidden;
         }
 
         h1 {
@@ -59,14 +59,15 @@
             transform: scale(0.95);
         }
 
-        /* 遊戲區域佈局：強制 5 列 */
+        /* 遊戲區域佈局 */
         #game-board {
-            display: grid;
-            grid-template-columns: repeat(5, auto); /* 一排5個 */
-            gap: 40px 15px; /* 行距40px, 列距15px */
+            display: flex; /* 改用 Flex 讓少量的試管自動置中 */
+            flex-wrap: wrap;
+            gap: 20px;
             justify-content: center;
             align-content: center;
             max-width: 100%;
+            margin-top: 20px;
         }
 
         .tube {
@@ -80,7 +81,6 @@
             transition: transform 0.2s ease, box-shadow 0.2s;
             overflow: hidden;
             background-color: rgba(255, 255, 255, 0.05);
-            /* 讓點擊區域大一點 */
             touch-action: manipulation; 
         }
 
@@ -105,7 +105,6 @@
         .pos-2 { bottom: 50%; }
         .pos-3 { bottom: 75%; }
 
-        /* 遮罩樣式 */
         .overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -141,28 +140,23 @@
             font-size: 1.2rem;
         }
 
-        /* 手機適配：如果螢幕太小，縮小試管 */
         @media (max-width: 450px) {
             :root {
                 --tube-width: 45px;
                 --tube-height: 160px;
             }
-            #game-board {
-                gap: 30px 10px;
-            }
         }
-
     </style>
 </head>
 <body>
 
-    <h1>液體排序拼圖 - 通關即可獲得神秘數字</h1>
+    <h1>液體排序拼圖 - 簡易版</h1>
     <div class="controls">
         <button onclick="initGame()">重新開始</button>
     </div>
 
     <div id="game-board">
-        </div>
+    </div>
 
     <div id="win-overlay" class="overlay">
         <div class="overlay-text win-text">恭喜過關！ 🎉</div>
@@ -177,26 +171,22 @@
     </div>
 
     <script>
-        /**
-         * 遊戲配置
-         * 1. 7 種高對比顏色
-         * 2. 10 根試管
-         * 3. 3 個空瓶
-         */
         const COLORS = [
-            '#FF3B30', // 鮮紅 (Red)
-            '#007AFF', // 亮藍 (Blue)
-            '#4CD964', // 鮮綠 (Green)
-            '#FFCC00', // 亮黃 (Yellow)
-            '#9B59B6', // 紫色 (Purple)
-            '#FF9500', // 橘色 (Orange)
-            '#00C7BE', // 青色/綠松石 (Teal/Cyan)
-            '#FFFFFF',
+            '#FF3B30', // 紅
+            '#007AFF', // 藍
+            '#4CD964', // 綠
+            '#FFCC00', // 黃
+            '#9B59B6', // 紫
+            '#FF9500', // 橘
+            '#00C7BE', // 青
         ];
         
         const TUBE_CAPACITY = 4;
-        const NUM_TUBES = 10; 
-        const NUM_EMPTY = 2;  // 3個空瓶
+        
+        // --- 修改區域開始 ---
+        const NUM_TUBES = 5;  // 總共改為 5 根試管
+        const NUM_EMPTY = 2;  // 其中 2 根是空的 (所以只有3根有顏色)
+        // --- 修改區域結束 ---
         
         let tubes = [];
         let selectedTubeIndex = null;
@@ -218,10 +208,9 @@
 
         function generateLevel() {
             let allLiquids = [];
-            const numFilledTubes = NUM_TUBES - NUM_EMPTY; // 10 - 3 = 7
+            const numFilledTubes = NUM_TUBES - NUM_EMPTY; 
             
-            // 根據填充試管的數量 (7) 選取前 7 種顏色
-            // 這樣確保顏色數量剛好對應需要填滿的試管數
+            // 根據填充試管的數量選取顏色
             for (let i = 0; i < numFilledTubes; i++) {
                 let color = COLORS[i]; 
                 for (let j = 0; j < TUBE_CAPACITY; j++) {
@@ -238,7 +227,7 @@
             // 分配到試管
             for (let i = 0; i < NUM_TUBES; i++) {
                 tubes[i] = [];
-                // 前 7 根填滿，後 3 根留空
+                // 填滿前面的試管，保留後面的為空
                 if (i < numFilledTubes) {
                     for (let j = 0; j < TUBE_CAPACITY; j++) {
                         tubes[i].push(allLiquids.pop());
@@ -246,7 +235,7 @@
                 }
             }
             
-            // 檢查開局是否就是死局（極低機率），如果是則重開
+            // 檢查開局是否就是死局，如果是則重開
             if (checkStuckState() && !checkWinState()) {
                 generateLevel();
             }
@@ -260,7 +249,6 @@
                 tubeDiv.className = `tube ${index === selectedTubeIndex ? 'selected' : ''}`;
                 tubeDiv.onclick = () => handleTubeClick(index);
 
-                // 渲染液體
                 tube.forEach((color, i) => {
                     const liquidDiv = document.createElement('div');
                     liquidDiv.className = `liquid pos-${i}`;
@@ -273,16 +261,14 @@
         }
 
         function handleTubeClick(index) {
-            if (isAnimating) return; // 動畫中禁止點擊
+            if (isAnimating) return;
 
-            // 1. 取消選取
             if (selectedTubeIndex === index) {
                 selectedTubeIndex = null;
                 render();
                 return;
             }
 
-            // 2. 選擇來源
             if (selectedTubeIndex === null) {
                 if (tubes[index].length > 0) {
                     selectedTubeIndex = index;
@@ -291,7 +277,6 @@
                 return;
             }
 
-            // 3. 嘗試移動
             attemptMove(selectedTubeIndex, index);
         }
 
@@ -299,24 +284,18 @@
             const sourceTube = tubes[fromIndex];
             const destTube = tubes[toIndex];
 
-            // 來源必須有水
             if (sourceTube.length === 0) return;
 
             const colorToMove = sourceTube[sourceTube.length - 1];
             
-            // 規則檢查：
-            // A. 目標未滿
-            // B. 目標是空的 或者 目標最上層顏色與來源相同
             if (destTube.length < TUBE_CAPACITY) {
                 if (destTube.length === 0 || destTube[destTube.length - 1] === colorToMove) {
                     executeMove(fromIndex, toIndex);
                 } else {
-                    // 顏色不符，取消選取
                     selectedTubeIndex = null;
                     render();
                 }
             } else {
-                // 目標已滿，取消選取
                 selectedTubeIndex = null;
                 render();
             }
@@ -327,7 +306,6 @@
             const destTube = tubes[toIndex];
             const colorToMove = sourceTube[sourceTube.length - 1];
 
-            // 計算一次能倒幾格（來源有多少個連續相同顏色 vs 目標剩餘空間）
             let sourceColorCount = 0;
             for (let i = sourceTube.length - 1; i >= 0; i--) {
                 if (sourceTube[i] === colorToMove) sourceColorCount++;
@@ -338,7 +316,6 @@
             let actualMoveAmount = Math.min(sourceColorCount, availableSpace);
 
             if (actualMoveAmount > 0) {
-                // 執行移動
                 for (let i = 0; i < actualMoveAmount; i++) {
                     destTube.push(sourceTube.pop());
                 }
@@ -346,7 +323,6 @@
                 selectedTubeIndex = null;
                 render();
                 
-                // 延遲檢查輸贏，讓玩家看到水倒進去
                 setTimeout(() => {
                     if (checkWinState()) {
                         winOverlay.classList.add('active');
@@ -361,33 +337,27 @@
             }
         }
 
-        // 檢查勝利
         function checkWinState() {
             return tubes.every(tube => {
-                // 空瓶 OK
                 if (tube.length === 0) return true;
-                // 必須滿 且 顏色一致
                 if (tube.length !== TUBE_CAPACITY) return false;
                 const firstColor = tube[0];
                 return tube.every(color => color === firstColor);
             });
         }
 
-        // 檢查死局 (Stuck)
         function checkStuckState() {
-            if (checkWinState()) return false; // 贏了就不算死局
+            if (checkWinState()) return false;
 
-            // 窮舉所有可能的移動
             for (let i = 0; i < NUM_TUBES; i++) {
-                if (tubes[i].length === 0) continue; // 來源是空的跳過
+                if (tubes[i].length === 0) continue;
 
                 let colorToMove = tubes[i][tubes[i].length - 1];
 
                 for (let j = 0; j < NUM_TUBES; j++) {
-                    if (i === j) continue; // 不檢查自己
+                    if (i === j) continue;
 
                     let destTube = tubes[j];
-                    // 只要找到一個合法的移動，就不是死局
                     if (destTube.length < TUBE_CAPACITY) {
                         if (destTube.length === 0 || destTube[destTube.length - 1] === colorToMove) {
                             return false; 
@@ -395,11 +365,9 @@
                     }
                 }
             }
-            // 跑完所有組合都沒步數
             return true;
         }
 
-        // 啟動遊戲
         initGame();
     </script>
 </body>
